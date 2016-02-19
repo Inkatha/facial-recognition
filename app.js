@@ -5,6 +5,7 @@ var express   = require('express')
     , upload  = multer({ dest: 'uploads/' })
     , exphbs  = require('express-handlebars')
     , easyimg = require('easyimage')
+    , busboy  = require('connect-busboy')
     , _       = require('lodash')
     , cv      = require('opencv');
     
@@ -22,13 +23,9 @@ app.use(express.static(__dirname + '/public'));
 app.engine('.hbs', exphbs({ extname: '.hbs', defaultLayout: 'default' }));
 app.set('view engine', '.hbs');
 
-
-
 app.get("/", function(req, res) {
    res.render("index"); 
 });
-
-
 
 // POST callback for the file upload form.
 app.post('/upload', upload.single('file'), function(req, res, next){
@@ -38,17 +35,16 @@ app.post('/upload', upload.single('file'), function(req, res, next){
   // and source and destination filepaths
   , src = __dirname + '/' + req.file.path
   , dst = __dirname + '/public/images/' + filename;
-
+  
   async.waterfall(
     [
-      function(callback){
+      function(callback) {
         // Check the mimetype to ensure the uploaded file is an image
-        if (!_.contains(['image/jpeg','image/png','image/gif'],req.file.mimetype)){
+        if (!_.contains(['image/jpeg','image/png','image/gif'], req.file.mimetype)){
           return callback(new Error(
             'Invalid file - please upload an image (.jpg, .png, .gif).')
           )
         }
-
         return callback();
       },
       function(callback){
@@ -59,7 +55,6 @@ app.post('/upload', upload.single('file'), function(req, res, next){
             if ((file.width < 960) || (file.height < 300)){
               return callback(new Error('Image must be at least 640 x 300 pixels'));
             }
-
             return callback();
           }
         );
@@ -77,13 +72,14 @@ app.post('/upload', upload.single('file'), function(req, res, next){
         );
       },
       function(callback){
-        // Placeholder
+        // Use OpenCV to read the resized image;
+        cv.readImage(dst, callback);
       },
       function(im, callback){
-        // Placeholder
+        im.detectObject(cv.FACE_CASCADE, {}, callback);
       }
     ],
-    function(err, faces){
+    function(err, faces) {
     // If an error occurred somewhere along the way, render the error page.
       if (err){
         return res.render('error', {message : err.message});
