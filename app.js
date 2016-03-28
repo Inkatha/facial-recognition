@@ -59,7 +59,7 @@ app.post('/upload', upload.single('file'), function(req, res, next){
           }
         );
       },
-      function(callback){
+      function(callback) {
         //Resize the image to a sensible size
         easyimg.resize({
           width: 960,
